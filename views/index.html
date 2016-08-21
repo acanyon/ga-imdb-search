@@ -1,0 +1,143 @@
+<!DOCTYPE="html">
+<html>
+  <head>
+    <script src='https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js'></script>
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js'></script>
+  </head>
+  <body>
+    <div id="view_body">
+      Hello World Body
+    </div>
+  </body>
+
+  <script id="tpl_home" type="text/template">
+    <div>
+      <div class="search_title">
+        Amanda's IMDB Search
+      </div>
+      <div class="search_container">
+        <input class="search_input">
+        <div class="search_button">Search</div>
+      </div>
+    </div>
+  </script>
+
+  <script id="tpl_results" type="text/template">
+    <div style="text-align: left;">
+      <div>
+        <div class="starred"></div>
+        <span style="font-size: 16px; font-weight: bold;"><%= Title %></span> (<%= Year %>)
+      </div>
+      <div><%= Rated %>  |  <%= Genre %>  |  <%= Released %></div>
+      <div><%= Plot %></div>
+      <image src="<%= Poster %>">
+    </div>
+  </script>
+
+  <script type="text/javascript">
+    var MovieView = function (options) {
+      this.$el = $(options.el);
+      this.render_home();
+      
+      this.$el.on('click', '.search_button', this._handle_search.bind(this));
+      this.$el.on('click', '.starred', this._handle_star_click.bind(this));
+    };
+    MovieView.prototype = {
+      api_key: '9c1732dd', 
+
+      search: function (str) {
+      },
+
+      render_query: function (title) {
+        $.get('http://www.omdbapi.com', {t: title, r: 'json', apikey: this.api_key})
+         .success(function (response) {
+           response.Year = (new Date(response.Released)).getFullYear()
+           var compiled = _.template($('#tpl_results').html());
+           this.$el.html(compiled(response));
+            
+           this.last_search = response;
+          
+         }.bind(this));
+      },
+
+      render_home: function () {
+        this.$el.html($('#tpl_home').html());
+        setTimeout(function () {
+          $('input.search_input').focus();
+        });
+      },
+
+      _handle_search: function (event) {
+        var title = this.$el.find('.search_input').val();
+        this.render_query(title);
+      },
+
+      _handle_star_click:  function (event) {
+        var $star = $(event.currentTarget)
+        var should_remove = !$star.hasClass('selected');
+        $star.toggleClass('selected');
+        $.post('/favorites', {remove: should_remove, imdbID: this.last_search.imdbID})
+      },
+    };
+
+    var movieview = new MovieView({
+      el: $('#view_body')[0]
+    });
+
+    movieview.search('Cafe Society');
+  </script>
+
+  <style>
+    #view_body {
+        padding: 20%;
+        text-align: center;
+    }
+
+    .search_title {
+        font-size: 18px;
+        font-weight: bold;
+    }
+
+    .search_button {
+        background: green;
+        cursor: pointer;
+        bottom: 0;
+        box-sizing: border-box;
+        color: white;
+        padding: 5px;
+        position: absolute;
+        right: 0;
+        top: 0;
+        width: 100px;
+        user-select: none;
+        -webkit-user-select: none;
+    }
+    .search_button:hover {
+        background: darkgreen;
+    }
+
+    input.search_input {
+        width: 100%;
+        padding: 7px 100px 7px 10px;
+        outline: none;
+    }
+
+    .search_container {
+        position: relative;
+        margin-top: 20px;
+    }
+
+    .starred {
+        display: inline-block;
+        margin: -3px;
+        cursor: pointer;
+        user-select: none;
+        -webkit-user-select: none;
+    }
+    .starred::after {content: '☆'; color: goldenrod; font-size: 26px;}
+    .starred.selected::after {content: '★'; color: goldenrod; font-size: 26px;}
+
+  </style>
+
+
+</html>
