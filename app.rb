@@ -1,4 +1,9 @@
 require 'sinatra'
+require 'JSON'
+
+def initialize 
+  @favorites = {}
+end
 
 get '/' do
   File.read(File.join('views', 'index.html'))
@@ -6,7 +11,11 @@ end
 
 get '/favorites' do
   response.header['Content-Type'] = 'application/json'
-  file = JSON.parse(File.read('data.json'))
+  File.read('data.json')
+end
+
+post '/favorites' do
+  file = JSON.parse(File.read(File.join('data.json')))
   unless params[:name] && params[:oid]
     return 'Invalid Request'
   end

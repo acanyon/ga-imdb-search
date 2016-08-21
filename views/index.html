@@ -5,6 +5,7 @@
     <script src='https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js'></script>
   </head>
   <body>
+    <div class="header"><a class="home_link">Home</a> <a class="favorites_link">Favorites</a></div>
     <div id="view_body">
       Hello World Body
     </div>
@@ -19,6 +20,13 @@
         <input class="search_input">
         <div class="search_button">Search</div>
       </div>
+    </div>
+  </script>
+
+  <script id="tpl_favorites" type="text/template">
+    <div>
+      <div class="title">Favorites</div>
+      <div class="favorites_container"></div>
     </div>
   </script>
 
@@ -41,6 +49,8 @@
       
       this.$el.on('click', '.search_button', this._handle_search.bind(this));
       this.$el.on('click', '.starred', this._handle_star_click.bind(this));
+      $('.home_link').on('click', this.render_home.bind(this));
+      $('.favorites_link').on('click', this.render_favorites.bind(this));
     };
     MovieView.prototype = {
       api_key: '9c1732dd', 
@@ -67,6 +77,27 @@
         });
       },
 
+      render_favorites: function () {
+        this.$el.html($('#tpl_favorites').html());
+        $.get('/favorites').success(function (response) {
+          var placeholder = _.template('<div id="imdb_<%= oid %>"></div>');
+          var compiled = _.template($('#tpl_results').html());
+          var favorites = [];
+
+          _.each(response, function (favorite_raw) {
+            favorites.push(placeholder(favorite_raw));
+          });
+          this.$el.find('.favorites_container').html(favorites.join(''));
+
+          _.each(response, function (favorite_raw) {
+            $.get('http://www.omdbapi.com', {i: favorite_raw.oid})
+             .success(function (response) {
+              this.$el.find('#imdb_' + response.imdbID).html(compiled(response));
+            }.bind(this));
+          }, this);
+        }.bind(this));
+      },
+
       _handle_search: function (event) {
         var title = this.$el.find('.search_input').val();
         this.render_query(title);
@@ -76,7 +107,7 @@
         var $star = $(event.currentTarget)
         var should_remove = !$star.hasClass('selected');
         $star.toggleClass('selected');
-        $.post('/favorites', {remove: should_remove, imdbID: this.last_search.imdbID})
+        $.post('/favorites', {oid: this.last_search.imdbID, name: this.last_search.Title})
       },
     };
 
@@ -84,7 +115,6 @@
       el: $('#view_body')[0]
     });
 
-    movieview.search('Cafe Society');
   </script>
 
   <style>
